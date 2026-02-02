@@ -1,1 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ПРОМИНЖИНИРИНГ | Проектирование и технологии</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        'tech': {
+                            900: '#0a0a0f',
+                            800: '#151520',
+                            700: '#1f1f2e',
+                            accent: '#00d4ff',
+                            warn: '#ff6b35'
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': 'linear-gradient(to right, #1f1f2e 1px, transparent 1px), linear-gradient(to bottom, #1f1f2e 1px, transparent 1px)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0f;
+            color: #e5e7eb;
+            overflow-x: hidden;
+        }
+        
+        .grid-bg {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+        }
+        
+        .blueprint-line {
+            position: relative;
+        }
+        
+        .blueprint-line::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            opacity: 0.3;
+        }
+        
+        .glitch-text {
+            animation: glitch 3s infinite;
+        }
+        
+        @keyframes glitch {
+            0%, 100% { opacity: 1; }
+            33% { opacity: 0.95; text-shadow: 2px 0 #00d4ff, -2px 0 #ff6b35; }
+            66% { opacity: 0.95; text-shadow: -2px 0 #00d4ff, 2px 0 #ff6b35; }
+        }
+        
+        .blueprint-card {
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            background: rgba(21, 21, 32, 0.6);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .blueprint-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 212, 255, 0.03) 10px,
+                rgba(0, 212, 255, 0.03) 20px
+            );
+            pointer-events: none;
+        }
+        
+        .blueprint-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.1);
+        }
+        
+        .dimension-line {
+            position: relative;
+            height: 20px;
+        }
+        
+        .dimension-line::before,
+        .dimension-line::after {
+            content: '|';
+            position: absolute;
+            color: #00d4ff;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0.5;
+        }
+        
+        .dimension-line::before { left: 0; }
+        .dimension-line::after { right: 0; }
+        
+        .tech-border {
+            position: relative;
+        }
+        
+        .tech-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(0, 212, 255, 0.02), transparent);
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+            z-index: 50;
+        }
+        
+        .cursor-coords {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #00d4ff;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 40;
+        }
+        
+        .section-number {
+            font-family: 'JetBrains Mono', monospace;
+            color: rgba(0, 212, 255, 0.3);
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased grid-bg">
 
+    <!-- Сканлайн для эффекта монитора -->
+    <div class="scanline"></div>
+    
+    <!-- Координаты курсора -->
+    <div class="cursor-coords" id="coords">X: 0000 Y: 0000</div>
+
+    <!-- Навигация -->
+    <nav class="fixed w-full z-50 bg-tech-900/80 backdrop-blur-md border-b border-tech-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 group cursor-pointer">
+                    <div class="w-8 h-8 border-2 border-tech-accent rotate-45 group-hover:rotate-90 transition-transform duration-300"></div>
+                    <div class="ml-2">
+                        <div class="text-lg font-bold tracking-wider text-white">ПРОМ<span class="text-tech-accent">ИНЖ</span></div>
+                        <div class="text-[10px] text-gray-500 font-mono tracking-widest">ENGINEERING.CORP</div>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex space-x-8">
+                    <a href="#about" class="text-sm text-gray-400 hover:text-tech-accent transition-colors font-mono uppercase tracking-wider border-b-2 border-transparent hover:border-tech-accent">[01] О_компании</a>
+                    <a href="#services" class="text-sm text-gray-400 hover:text-tech-accent transition-colors font-mono uppercase tracking-wider border-b-2 border-transparent hover:border-tech-accent">[02] Услуги</a>
+                    <a href="#projects" class="text-sm text-gray-400 hover:text-tech-accent transition-colors font-mono uppercase tracking-wider border-b-2 border-transparent hover:border-tech-accent">[03] Проекты</a>
+                    <a href="#contact" class="text-sm text-gray-400 hover:text-tech-accent transition-colors font-mono uppercase tracking-wider border-b-2 border-transparent hover:border-tech-accent">[04] Контакты</a>
+                </div>
+
+                <button class="md:hidden text-tech-accent" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Мобильное меню -->
+        <div id="mobile-menu" class="hidden md:hidden bg-tech-800 border-t border-tech-700">
+            <div class="px-4 pt-2 pb-3 space-y-1">
+                <a href="#about" class="block px-3 py-2 text-tech-accent font-mono text-sm">О_компании</a>
+                <a href="#services" class="block px-3 py-2 text-gray-400 font-mono text-sm">Услуги</a>
+                <a href="#projects" class="block px-3 py-2 text-gray-400 font-mono text-sm">Проекты</a>
+                <a href="#contact" class="block px-3 py-2 text-gray-400 font-mono text-sm">Контакты</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+        <!-- Фоновые элементы чертежа -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <svg class="absolute top-20 left-10 w-64 h-64 opacity-10" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="5,5"/>
+                <line x1="20" y1="100" x2="180" y2="100" stroke="#00d4ff" stroke-width="0.2"/>
+                <line x1="100" y1="20" x2="100" y2="180" stroke="#00d4ff" stroke-width="0.2"/>
+            </svg>
+            <div class="absolute top-1/4 right-10 w-px h-64 bg-gradient-to-b from-transparent via-tech-accent to-transparent opacity-20"></div>
+            <div class="absolute bottom-1/4 left-20 w-32 h-px bg-gradient-to-r from-transparent via-tech-accent to-transparent opacity-20"></div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+            <div class="section-number mb-4 tracking-[0.3em]">REFERENCE: PRJ-2026-001</div>
+            
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight glitch-text">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">ИНЖИНИРИНГ</span><br>
+                <span class="text-tech-accent font-mono text-3xl md:text-5xl">ТОЧНОСТИ</span>
+            </h1>
+            
+            <div class="dimension-line max-w-md mx-auto mb-8"></div>
+            
+            <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-12 font-light leading-relaxed">
+                Комплексное проектирование промышленных объектов. <br>
+                <span class="text-tech-accent font-mono text-sm">CAD/CAM/CAE</span> технологии для решений уровня <span class="text-white">Industry 4.0</span>
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="#contact" class="group relative px-8 py-4 bg-tech-accent/10 border border-tech-accent text-tech-accent font-mono uppercase tracking-wider text-sm hover:bg-tech-accent hover:text-tech-900 transition-all duration-300 overflow-hidden">
+                    <span class="relative z-10">Запросить расчет</span>
+                    <div class="absolute inset-0 bg-tech-accent transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
+                </a>
+                <a href="#projects" class="px-8 py-4 border border-gray-700 text-gray-400 font-mono uppercase tracking-wider text-sm hover:border-tech-accent hover:text-tech-accent transition-all duration-300">
+                    Смотреть проекты →
+                </a>
+            </div>
+            
+            <div class="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto text-center border-t border-gray-800 pt-8">
+                <div>
+                    <div class="text-3xl font-bold text-white font-mono counter" data-target="150">0</div>
+                    <div class="text-xs text-gray-500 mt-1 uppercase tracking-wider">Проектов</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-white font-mono counter" data-target="12">0</div>
+                    <div class="text-xs text-gray-500 mt-1 uppercase tracking-wider">Лет работы</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-white font-mono counter" data-target="98">0</div>
+                    <div class="text-xs text-gray-500 mt-1 uppercase tracking-wider">% Точность</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Скролл-индикатор -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-tech-accent opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- О компании -->
+    <section id="about" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div>
+                    <div class="section-number mb-2">SECTION 01</div>
+                    <h2 class="text-4xl font-bold mb-6 text-white tech-border pb-4">ТЕХНИЧЕСКАЯ<br><span class="text-tech-accent">ЭКСПЕРТИЗА</span></h2>
+                    
+                    <p class="text-gray-400 mb-6 leading-relaxed">
+                        Мы объединяем классические инженерные методики с современными цифровыми технологиями. Каждое решение проходит многоступенчатую проверку: от 3D-моделирования до стресс-тестирования материалов.
+                    </p>
+                    
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-tech-accent rotate-45"></div>
+                            <span class="text-gray-300">Собственное производство прототипов</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-tech-accent rotate-45"></div>
+                            <span class="text-gray-300">Лицензия на проектирование I-IV категории сложности</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-tech-accent rotate-45"></div>
+                            <span class="text-gray-300">ISO 9001:2015, ГОСТ РВ 0015-002-2012</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="blueprint-card p-8 rounded-sm">
+                        <div class="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-tech-accent"></div>
+                        <div class="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-tech-accent"></div>
+                        <div class="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-tech-accent"></div>
+                        <div class="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-tech-accent"></div>
+                        
+                        <div class="font-mono text-xs text-tech-accent mb-4">// SYSTEM.STATUS: ONLINE</div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between border-b border-gray-800 pb-2">
+                                <span class="text-gray-500">Проектировщиков</span>
+                                <span class="text-white font-mono">47</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-800 pb-2">
+                                <span class="text-gray-500">ПНР-специалистов</span>
+                                <span class="text-white font-mono">23</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-800 pb-2">
+                                <span class="text-gray-500">CAD-станций</span>
+                                <span class="text-white font-mono">64</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-800 pb-2">
+                                <span class="text-gray-500">Серверов рендеринга</span>
+                                <span class="text-white font-mono">8</span>
+                            </div>
+                            <div class="flex justify-between pt-2">
+                                <span class="text-gray-500">Вычислительная мощность</span>
+                                <span class="text-tech-accent font-mono">432 TFLOPS</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Декоративные линии -->
+                    <svg class="absolute -z-10 -right-20 -bottom-20 w-64 h-64 opacity-20" viewBox="0 0 200 200">
+                        <rect x="10" y="10" width="180" height="180" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+                        <rect x="30" y="30" width="140" height="140" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Услуги -->
+    <section id="services" class="py-24 bg-tech-800/30 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="section-number mb-2">SECTION 02</div>
+                <h2 class="text-4xl font-bold text-white mb-4">КОМПЕТЕНЦИИ</h2>
+                <div class="dimension-line max-w-xs mx-auto"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Услуга 1 -->
+                <div class="blueprint-card p-8 group cursor-pointer">
+                    <div class="w-12 h-12 border border-tech-accent/30 rounded-sm flex items-center justify-center mb-6 group-hover:bg-tech-accent/10 transition-colors">
+                        <svg class="w-6 h-6 text-tech-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3 font-mono">ПРОЕКТИРОВАНИЕ</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Разработка рабочей документации, 3D-моделирование, расчеты на прочность и усталость. Полный цикл от эскиза до КМД.
+                    </p>
+                    <div class="text-tech-accent font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity">[ Подробнее → ]</div>
+                </div>
+
+                <!-- Услуга 2 -->
+                <div class="blueprint-card p-8 group cursor-pointer">
+                    <div class="w-12 h-12 border border-tech-accent/30 rounded-sm flex items-center justify-center mb-6 group-hover:bg-tech-accent/10 transition-colors">
+                        <svg class="w-6 h-6 text-tech-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3 font-mono">ТЕХНОЛОГИИ</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Разработка технологических процессов, маршрутная и операционная карты, нормирование трудозатрат. Оптимизация производства.
+                    </p>
+                    <div class="text-tech-accent font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity">[ Подробнее → ]</div>
+                </div>
+
+                <!-- Услуга 3 -->
+                <div class="blueprint-card p-8 group cursor-pointer">
+                    <div class="w-12 h-12 border border-tech-accent/30 rounded-sm flex items-center justify-center mb-6 group-hover:bg-tech-accent/10 transition-colors">
+                        <svg class="w-6 h-6 text-tech-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3 font-mono">АВТОМАТИЗАЦИЯ</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Проектирование АСУ ТП, внедрение SCADA-систем, программирование ПЛК. Индустрия 4.0 под ключ.
+                    </p>
+                    <div class="text-tech-accent font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity">[ Подробнее → ]</div>
+                </div>
+            </div>
+            
+            <!-- Дополнительные услуги в строку -->
+            <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="border border-gray-800 p-4 text-center hover:border-tech-accent/50 transition-colors">
+                    <div class="text-tech-accent font-mono text-lg mb-1">01</div>
+                    <div class="text-gray-400 text-xs uppercase">Обследование зданий</div>
+                </div>
+                <div class="border border-gray-800 p-4 text-center hover:border-tech-accent/50 transition-colors">
+                    <div class="text-tech-accent font-mono text-lg mb-1">02</div>
+                    <div class="text-gray-400 text-xs uppercase">Тепловизионный контроль</div>
+                </div>
+                <div class="border border-gray-800 p-4 text-center hover:border-tech-accent/50 transition-colors">
+                    <div class="text-tech-accent font-mono text-lg mb-1">03</div>
+                    <div class="text-gray-400 text-xs uppercase">Лазерное сканирование</div>
+                </div>
+                <div class="border border-gray-800 p-4 text-center hover:border-tech-accent/50 transition-colors">
+                    <div class="text-tech-accent font-mono text-lg mb-1">04</div>
+                    <div class="text-gray-400 text-xs uppercase">ПНР и наладка</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Проекты -->
+    <section id="projects" class="py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <div class="section-number mb-2">SECTION 03</div>
+                    <h2 class="text-4xl font-bold text-white">РЕАЛИЗОВАННЫЕ<br>ПРОЕКТЫ</h2>
+                </div>
+                <div class="hidden md:block text-right text-gray-500 font-mono text-sm">
+                    SELECT * FROM projects<br>
+                    WHERE status = 'completed'<br>
+                    ORDER BY complexity DESC;
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Проект 1 -->
+                <div class="group relative overflow-hidden border border-gray-800 hover:border-tech-accent transition-all duration-500">
+                    <div class="h-64 bg-tech-800 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-tech-accent/20 to-transparent opacity-50"></div>
+                        <!-- Имитация чертежа -->
+                        <svg class="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 300">
+                            <path d="M50 250 L350 250 L350 50 L50 50 Z" fill="none" stroke="#00d4ff" stroke-width="1"/>
+                            <line x1="50" y1="150" x2="350" y2="150" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="5,5"/>
+                            <line x1="200" y1="50" x2="200" y2="250" stroke="#00d4ff" stroke-width="0.5" stroke-dasharray="5,5"/>
+                            <circle cx="200" cy="150" r="40" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+                        </svg>
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-tech-accent/20 text-tech-accent px-2 py-1 text-xs font-mono border border-tech-accent/30">2024</span>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-tech-800/50 backdrop-blur-sm">
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-tech-accent transition-colors">Модернизация ГПА</h3>
+                        <p class="text-gray-400 text-sm mb-4">Замена системы управления газоперекачивающим агрегатом. Снижение энергопотребления на 15%.</p>
+                        <div class="flex justify-between items-center text-xs font-mono text-gray-500 border-t border-gray-700 pt-4">
+                            <span>Объект: ЦБК-001</span>
+                            <span class="text-tech-accent">→</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Проект 2 -->
+                <div class="group relative overflow-hidden border border-gray-800 hover:border-tech-accent transition-all duration-500">
+                    <div class="h-64 bg-tech-800 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-50"></div>
+                        <svg class="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 300">
+                            <rect x="100" y="50" width="200" height="200" fill="none" stroke="#ff6b35" stroke-width="1"/>
+                            <line x1="100" y1="50" x2="300" y2="250" stroke="#ff6b35" stroke-width="0.5"/>
+                            <line x1="300" y1="50" x2="100" y2="250" stroke="#ff6b35" stroke-width="0.5"/>
+                        </svg>
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-orange-500/20 text-orange-400 px-2 py-1 text-xs font-mono border border-orange-500/30">2023</span>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-tech-800/50 backdrop-blur-sm">
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-tech-accent transition-colors">Цех термообработки</h3>
+                        <p class="text-gray-400 text-sm mb-4">Проектирование и пусконаладка линии закалки с ЧПУ. Производительность 120 деталей/смену.</p>
+                        <div class="flex justify-between items-center text-xs font-mono text-gray-500 border-t border-gray-700 pt-4">
+                            <span>Объект: ТОЦ-042</span>
+                            <span class="text-tech-accent">→</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Проект 3 -->
+                <div class="group relative overflow-hidden border border-gray-800 hover:border-tech-accent transition-all duration-500">
+                    <div class="h-64 bg-tech-800 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-50"></div>
+                        <svg class="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 300">
+                            <polygon points="200,50 350,250 50,250" fill="none" stroke="#10b981" stroke-width="1"/>
+                            <circle cx="200" cy="180" r="50" fill="none" stroke="#10b981" stroke-width="0.5"/>
+                        </svg>
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-green-500/20 text-green-400 px-2 py-1 text-xs font-mono border border-green-500/30">2023</span>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-tech-800/50 backdrop-blur-sm">
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-tech-accent transition-colors">АСУ ТП Завода</h3>
+                        <p class="text-gray-400 text-sm mb-4">Внедрение единой системы автоматизации производства. Интеграция 15 станков в единую сеть.</p>
+                        <div class="flex justify-between items-center text-xs font-mono text-gray-500 border-t border-gray-700 pt-4">
+                            <span>Объект: АСУ-089</span>
+                            <span class="text-tech-accent">→</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <button class="px-8 py-3 border border-gray-700 text-gray-400 hover:border-tech-accent hover:text-tech-accent transition-colors font-mono text-sm uppercase tracking-wider">
+                    [ Загрузить архив проектов ]
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Контакты -->
+    <section id="contact" class="py-24 bg-tech-800/30 relative overflow-hidden">
+        <!-- Декоративная сетка -->
+        <div class="absolute inset-0 opacity-10">
+            <svg width="100%" height="100%">
+                <defs>
+                    <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#smallGrid)"/>
+            </svg>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid md:grid-cols-2 gap-16">
+                <div>
+                    <div class="section-number mb-2">SECTION 04</div>
+                    <h2 class="text-4xl font-bold text-white mb-6">СВЯЗАТЬСЯ<br>С <span class="text-tech-accent">ОТДЕЛОМ</span></h2>
+                    <p class="text-gray-400 mb-8">
+                        Опишите задачу — мы подготовим техническое предложение с оценкой сроков и стоимости в течение 24 часов.
+                    </p>
+                    
+                    <div class="space-y-6 font-mono text-sm">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-8 h-8 border border-tech-accent/30 flex items-center justify-center text-tech-accent flex-shrink-0">@</div>
+                            <div>
+                                <div class="text-gray-500 mb-1">EMAIL</div>
+                                <div class="text-white">request@proming.ru</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-8 h-8 border border-tech-accent/30 flex items-center justify-center text-tech-accent flex-shrink-0">T</div>
+                            <div>
+                                <div class="text-gray-500 mb-1">ТЕЛЕФОН</div>
+                                <div class="text-white">+7 (495) 123-45-67</div>
+                                <div class="text-gray-600 text-xs">доб. 101 — отдел продаж</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-8 h-8 border border-tech-accent/30 flex items-center justify-center text-tech-accent flex-shrink-0">L</div>
+                            <div>
+                                <div class="text-gray-500 mb-1">АДРЕС</div>
+                                <div class="text-white">Москва, ул. Инженерная, 42<br>БЦ "Технополис", офис 801</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="blueprint-card p-8">
+                    <form class="space-y-6" onsubmit="event.preventDefault(); alert('Форма демонстрационная. В реальном проекте здесь будет отправка на сервер.');">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-mono text-gray-500 mb-2 uppercase">Имя/Компания *</label>
+                                <input type="text" class="w-full bg-tech-900 border border-gray-700 text-white px-4 py-3 focus:border-tech-accent focus:outline-none transition-colors font-mono text-sm" placeholder="ООО ТехноПром">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono text-gray-500 mb-2 uppercase">Телефон</label>
+                                <input type="tel" class="w-full bg-tech-900 border border-gray-700 text-white px-4 py-3 focus:border-tech-accent focus:outline-none transition-colors font-mono text-sm" placeholder="+7 (___) ___-__-__">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-mono text-gray-500 mb-2 uppercase">Email *</label>
+                            <input type="email" class="w-full bg-tech-900 border border-gray-700 text-white px-4 py-3 focus:border-tech-accent focus:outline-none transition-colors font-mono text-sm" placeholder="email@company.ru" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-mono text-gray-500 mb-2 uppercase">Тип работ</label>
+                            <select class="w-full bg-tech-900 border border-gray-700 text-white px-4 py-3 focus:border-tech-accent focus:outline-none transition-colors font-mono text-sm">
+                                <option>Проектирование</option>
+                                <option>Автоматизация</option>
+                                <option>Обследование</option>
+                                <option>Комплексное решение</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-mono text-gray-500 mb-2 uppercase">Техническое задание</label>
+                            <textarea rows="4" class="w-full bg-tech-900 border border-gray-700 text-white px-4 py-3 focus:border-tech-accent focus:outline-none transition-colors font-mono text-sm resize-none" placeholder="Опишите объект, задачу и требования..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-tech-accent text-tech-900 py-4 font-bold uppercase tracking-wider hover:bg-white transition-colors relative overflow-hidden group">
+                            <span class="relative z-10">Отправить запрос</span>
+                            <div class="absolute inset-0 bg-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        </button>
+                        
+                        <div class="text-xs text-gray-600 font-mono text-center">
+                            Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="border-t border-gray-800 py-12 bg-tech-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-6 h-6 border border-tech-accent rotate-45"></div>
+                    <span class="text-white font-bold tracking-wider">ПРОМ<span class="text-tech-accent">ИНЖ</span></span>
+                </div>
+                
+                <div class="text-gray-600 text-xs font-mono text-center md:text-right">
+                    <div>© 2026 ПРОМИНЖИНИРИНГ. Все права защищены.</div>
+                    <div class="mt-1">Системная версия: v2.6.0 | Статус: OPERATIONAL</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Отслеживание координат курсора (эффект чертежа)
+        document.addEventListener('mousemove', (e) => {
+            const coords = document.getElementById('coords');
+            coords.textContent = `X: ${String(e.clientX).padStart(4, '0')} Y: ${String(e.clientY).padStart(4, '0')}`;
+        });
+
+        // Анимация счетчиков
+        const counters = document.querySelectorAll('.counter');
+        const speed = 200;
+
+        const animateCounters = () => {
+            counters.forEach(counter => {
+                const target = +counter.getAttribute('data-target');
+                const count = +counter.innerText;
+                const inc = target / speed;
+
+                if (count < target) {
+                    counter.innerText = Math.ceil(count + inc);
+                    setTimeout(animateCounters, 20);
+                } else {
+                    counter.innerText = target + (target === 98 ? '%' : '+');
+                }
+            });
+        };
+
+        // Запуск анимации при прокрутке
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+
+        const statsSection = document.querySelector('.counter').parentElement.parentElement;
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+
+        // Плавная прокрутка для якорей
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Эффект параллакса для героя
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('section:first-of-type');
+            if (parallax) {
+                parallax.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+        });
+    </script>
+</body>
+</html>
